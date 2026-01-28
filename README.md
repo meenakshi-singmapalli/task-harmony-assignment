@@ -1,9 +1,4 @@
-# Backend / AI Engineer Assessment
 
-**Company:** Task Harmony
-**Time Limit:** 3-4 hours
-**Submission:** GitHub repository link
-**Follow-up:** 15-20 min technical discussion on your submission
 
 ---
 
