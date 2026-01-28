@@ -1,0 +1,59 @@
+Edge Cases Handled
+Edge Case 1: Subject vs Body Conflicts
+
+Email ID: EMAIL_001
+
+Problem:
+The subject and body contained conflicting shipment details. Early versions sometimes picked the subject values, which were less accurate.
+
+Solution:
+I explicitly instructed the model to prioritize the email body over the subject during extraction. This resolved incorrect origin/destination and incoterm selections when the subject was generic or misleading.
+
+Edge Case 2: Ambiguous or Incorrect Port Name Mapping
+
+Email IDs: EMAIL_039, EMAIL_045, EMAIL_050
+
+Problem:
+Some outputs contained correct UN/LOCODEs but incorrect port names (e.g., KRPUS mapped to “Chennai”). This happened when port names appeared multiple times in the email and the model associated the wrong label.
+
+Solution:
+I enforced a rule that port names must be resolved strictly from port_codes_reference.json using the extracted port code. This avoids relying on free-text names and prevents hallucinated or mismatched port names.
+
+Edge Case 3: Malformed or Unclear Port Codes
+
+Email ID: EMAIL_042
+
+Problem:
+The extracted origin port code contained invalid formatting ("KR PUS" with a space), which does not match UN/LOCODE standards.
+
+Solution:
+I added validation logic to either normalize malformed codes or safely return null if the code does not exactly match a reference entry. This prevents invalid data from propagating downstream.
+
+Edge Case 4: Emails With Insufficient Information
+
+Email ID: EMAIL_047
+
+Problem:
+The email did not contain enough structured information to confidently extract ports or product line.
+
+Solution:
+Instead of guessing, the system returns null for missing fields while preserving the email ID. This aligns with the business rule to avoid hallucination and ensures robustness on noisy inputs.
+
+5. System Design Questions
+1. Scale: 10,000 emails/day, 99% within 5 minutes, $500/month
+
+I would design an asynchronous pipeline where incoming emails are pushed into a queue and processed by a pool of stateless workers. Each worker calls the LLM, validates the output using Pydantic, and stores the result. This allows horizontal scaling and makes it easy to meet latency requirements.
+
+To stay within the $500/month budget, I would batch multiple emails per LLM request where possible and avoid retries unless absolutely necessary. I would also introduce lightweight rule-based pre-checks to bypass the LLM for very simple emails. Autoscaling based on queue depth ensures the system only uses compute when needed.
+
+2. Monitoring: Accuracy drops from 90% to 70%
+
+I would monitor field-level accuracy over time using a combination of sampled ground-truth comparisons and heuristic checks (e.g., invalid port codes, unexpected null spikes). Dashboards would show trends per field instead of just overall accuracy.
+
+When a drop is detected, I would analyze recent failed examples to identify whether the issue comes from prompt drift, new email patterns, or data quality changes. Based on findings, I would either refine the prompt, add post-processing rules, or update validation logic to recover accuracy quickly.
+
+3. Multilingual Emails (Mandarin and Hindi)
+
+To handle multilingual emails, I would first detect the email language. Non-English emails would either be translated to English using a reliable translation model or directly processed using a multilingual LLM while keeping the same extraction schema.
+
+Accuracy evaluation would remain unchanged because extracted fields like port codes, incoterms, and numeric values are language-independent. I would track accuracy separately by language to detect whether certain languages need prompt tuning or additional examples.
