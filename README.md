@@ -1,7 +1,4 @@
-# Task Harmony – LLM Email Extraction System
-
-**Author:** [Your Name]  
-**Role:** Backend / AI Engineer Assessment  
+# Task Harmony – LLM Email Extraction System 
 
 ---
 
